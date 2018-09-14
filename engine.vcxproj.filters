@@ -1,0 +1,48 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="output">
+      <UniqueIdentifier>{2b2cb7bb-4188-44c8-87c1-9d7b3403bd7c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="common">
+      <UniqueIdentifier>{2733afcd-f8af-4a14-a9b6-92855f3f2f4e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="common\character">
+      <UniqueIdentifier>{c1346eb2-f635-4bd8-8771-b1aaba162a41}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="common\character\action">
+      <UniqueIdentifier>{a432576c-6d8f-410c-a0be-7ca7f4027243}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\dll\tests.cpp">
+      <Filter>output</Filter>
+    </ClCompile>
+    <ClCompile Include="src\common\level.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="src\common\geometry.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="src\common\character\action\idle.cpp">
+      <Filter>common\character\action</Filter>
+    </ClCompile>
+    <ClCompile Include="src\common\character\character.cpp">
+      <Filter>common\character</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\common\level.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="src\common\geometry.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="src\common\character\action\idle.h">
+      <Filter>common\character\action</Filter>
+    </ClInclude>
+    <ClInclude Include="src\common\character\character.h">
+      <Filter>common\character</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
