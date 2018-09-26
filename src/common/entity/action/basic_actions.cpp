@@ -7,11 +7,11 @@
 
 namespace action
 {
-	void addWalk(WalkTable& walkTable, ForcesTable& forcesTable, WalkTable::Element data)
+	void addWalk(WalkTable& walkTable, ForcesTable& forcesTable, const WalkTable::Element& in_data, handle& out_forceId)
 	{
-		vec2 force = directionVectors[(int)data.direction] * data.velocity;
-		handle forceId = forcesTable.add(force);
-		walkTable.add(data.character, data.forceId, data.direction, data.velocity, data.duration);
+		vec2 force = directionVectors[(int)in_data.direction] * in_data.velocity;
+		out_forceId = forcesTable.add(force);
+		walkTable.add(in_data.character, out_forceId, in_data.direction, in_data.velocity, in_data.duration);
 	}
 
 	void updateWalk(WalkTable& walkTable, ForcesTable& forcesTable, float deltaTime)
@@ -21,15 +21,10 @@ namespace action
 		{
 			walkTable.durations[i] -= deltaTime;
 		}
-		for (; i < walkTable.count; i++)
-		{
-
-		}
-		int unfinishedActionsCount;
-		for (unfinishedActionsCount = walkTable.count; unfinishedActionsCount > 0 && walkTable.durations[unfinishedActionsCount - 1] < 0; unfinishedActionsCount--)
-		{
-		}
-		walkTable.count = unfinishedActionsCount;
+		handle* forcesToRemove = memory::allocators::stack.allocate<handle>(walkTable.count - i + 1);
+		int newCount = i;
+		
+		walkTable.count = newCount;
 	}
 
 	void updateIdle(IdleTable& idleTable, float deltaTime)

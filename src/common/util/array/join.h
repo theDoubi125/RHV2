@@ -61,12 +61,15 @@ namespace array
 				cursor++;
 			}
 		}
-		outBuffer = out_indexes[count - 1];
-		out_indexes[count - 1] = out_indexes[cursor];
-		out_indexes[cursor] = outBuffer;
+		if (count > 0)
+		{
+			outBuffer = out_indexes[count - 1];
+			out_indexes[count - 1] = out_indexes[cursor];
+			out_indexes[cursor] = outBuffer;
 
-		index[count - 1] = index[cursor];
-		index[cursor] = pivot;
+			index[count - 1] = index[cursor];
+			index[cursor] = pivot;
+		}
 
 		if (cursor > 1)
 		{
@@ -124,5 +127,34 @@ namespace array
 		quickSort(index, sortedIndex, count);
 		reorder<Rest...>(sortedIndex, arrays..., count);
 		allocator.popStack();
+	}
+
+	template<typename IndexType>
+	void quickSort(IndexType* index, int count)
+	{
+		auto& allocator = memory::allocators::stack;
+		allocator.pushStack();
+		int* sortedIndex = allocator.allocate<int>(count);
+		for (int i = 0; i < count; i++)
+			sortedIndex[i] = i;
+		quickSort(index, sortedIndex, count);
+		allocator.popStack();
+	}
+
+	// add all content of toAdd without the elements already inside target. All arrays must be sorted
+	template<typename IndexType>
+	void addAllUnique(IndexType* target, int& io_targetCount, IndexType* toAdd, int toAddCount)
+	{
+		int targetCursor = 0;
+		int toAddCursor = 0;
+		for (;toAddCursor < toAddCount, toAddCursor++)
+		{
+			for (; targetCursor < io_targetCount && toAddCursor < toAddCount && target[targetCursor] < toAdd[toAddCursor]; targetCursor++);
+			if (targetCursor >= io_targetCount || target[targetCursor] != toAdd[toAddCursor])
+			{
+				insertAt(target, io_targetCount, targetCursor, toAdd[toAddCursor]);
+				io_targetCount++;
+			}
+		}
 	}
 }

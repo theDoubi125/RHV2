@@ -20,3 +20,21 @@ void applyForces(MovementTable& movementTable, ForcesTable& forcesTable, float d
 		movementTable.velocities[movementCursor] += forcesTable.forces[forcesCursor] * deltaTime;
 	}
 }
+
+void removeMovements(MovementTable& movement, handle* toRemove, int count)
+{
+	movement.removeAll(toRemove, count);
+	for (int i = 0; i < count; i++)
+		movement.removed[i + movement.removedCount];
+	movement.removedCount += count;
+}
+
+void ForcesTable::assignBindings(MovementTable& movementTable)
+{
+	entityBinding = &movementTable.addBinding();
+}
+
+void ForcesTable::updateBindings()
+{
+	entityBinding->update<ForcesTable, 0>(*this);
+}

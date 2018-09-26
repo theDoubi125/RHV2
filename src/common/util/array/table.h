@@ -1,5 +1,6 @@
 #pragma once
 
+
 #include "util/handle.h"
 
 
@@ -58,32 +59,36 @@ struct Table : public Table<Rest...>
 		insert(firstValue, restValues..., count);
 	}
 
+	void add(const First& firstValue, const TableElement<Rest...> restValues)
+	{
+		int index = array::getSortInsertIndex(first, count, firstValue);
+		insert(firstValue, restValues, index);
+	}
+
 	void add(const ElementType& element)
 	{
 		int index = array::getSortInsertIndex(first, count, element.first);
 		insert(element, index);
 	}
 
-	void remove(const First& value)
+	// toRemove must be sorted, it contains indexes of the cells that must be removed
+	void removeAt(int* toRemove, int toRemoveCount)
 	{
-		for (int i = 0; i < count; i++)
+		int toMoveCursor = 0;
+		int targetCursor = 0;
+		int toRemoveCursor = 0;
+		for (int toMoveCursor = 0; toMoveCursor < count; toMoveCursor++)
 		{
-			if (first[i] == value)
+			for (; toRemoveCursor < toRemoveCount && toRemove[toRemoveCursor] < toMoveCursor; toRemoveCursor++);
+			if (toRemoveCursor >= toRemoveCount || toRemove[toRemoveCursor] != toMoveCursor)
 			{
-				removeAt(i);
-				return;
+				first[targetCursor] = first[toMoveCursor];
+				targetCursor++;
 			}
 		}
-		return;
+		Table<Rest...>::removeAt(toRemove, toRemoveCount);
 	}
 
-	void removeAt(int index)
-	{
-		for (int i = index; i < count; i++)
-		{
-
-		}
-	}
 
 	void insert(const First& firstValue, const Rest&... restValues, int index)
 	{
@@ -97,6 +102,20 @@ struct Table : public Table<Rest...>
 		}
 		first[count] = toAdd;
 		Table<Rest...>::insert(restValues..., index);
+	}
+
+	void insert(const First& firstValue, const TableElement<Rest...> restValues, int index)
+	{
+		First bufferValue = first[index];
+		First toAdd = firstValue;
+		for (int i = index; i < count; i++)
+		{
+			bufferValue = first[i];
+			first[i] = toAdd;
+			toAdd = bufferValue;
+		}
+		first[count] = toAdd;
+		Table<Rest...>::insert(restValues, index);
 	}
 
 	void insert(const ElementType& value, int index)
@@ -142,10 +161,60 @@ struct Table : public Table<Rest...>
 	};
 
 #ifdef USE_IMGUI
-	void showEditor(char* label) { showTableEditor<First, Rest...>(label, getColumnNames(), this); }
+	void showEditor(char* label)
+	{
+		ImGui::Columns(getSize(this));
+		showColumnsEditor();
+		for(int i=0; i<count; i++)
+			showRowEditor(label, i);
+	}
+
 	void showEditor(char* label, TableElement<First, Rest...>* elementToAdd)
 	{
-		showTableEditor<First, Rest...>(label, getColumnNames(), this, elementToAdd);
+		char buffer[100];
+		sprintf_s(buffer, "%s editor", label);
+		ImGui::PushID(buffer);
+		ImGui::Columns(getSize(this) + 1);
+		showElementEditor<First, Rest...>(label, elementToAdd);
+		int columnCount = ImGui::GetColumnsCount();
+		ImGui::Columns(1);
+		if (ImGui::Button("Add"))
+		{
+			add(*elementToAdd);
+		}
+		ImGui::Columns(columnCount);
+		showColumnsEditor();
+		ImGui::NextColumn();
+		for (int i = 0; i < count; i++)
+		{
+			showRowEditor(label, i);
+			sprintf_s(buffer, "remove %s %d", label, i);
+			if (ImGui::Button(buffer))
+			{
+				removeAt(&i, 1);
+				count--;
+			}
+			ImGui::NextColumn();
+		}
+		ImGui::Columns(1);
+		ImGui::PopID();
+	}
+
+	void showColumnsEditor()
+	{
+		int columnCount = getSize(this);
+		for (int i = 0; i < columnCount; i++)
+		{
+			ImGui::Text(getColumnNames()[i]);
+			ImGui::NextColumn();
+		}
+	}
+
+	void showRowEditor(char* label, int row)
+	{
+		char buffer[100];
+		sprintf_s(buffer, "%s%d", label, row);
+		showTableElementEditors<First, Rest...>(buffer, this, row);
 	}
 
 	virtual char** getColumnNames() = 0;
@@ -157,6 +226,7 @@ struct Table : public Table<Rest...>
 template<typename First>
 struct Table<First>
 {
+	using ElementType = TableElement<First>;
 	template<typename Allocator>
 	Table(Allocator& allocator, int in_capacity) : capacity(in_capacity), count(0)
 	{
@@ -201,6 +271,22 @@ struct Table<First>
 		array::quickSort<First>(get<sortColumn>(), sortIndex, count);
 	}
 
+	void removeAt(int* toRemove, int toRemoveCount)
+	{
+		int toMoveCursor = 0;
+		int targetCursor = 0;
+		int toRemoveCursor = 0;
+		for (int toMoveCursor = 0; toMoveCursor < count; toMoveCursor++)
+		{
+			for (; toRemoveCursor < toRemoveCount && toRemove[toRemoveCursor] < toMoveCursor; toRemoveCursor++);
+			if (toRemove[toRemoveCursor] != toMoveCursor)
+			{
+				first[targetCursor] = first[toMoveCursor];
+				toMoveCursor++;
+			}
+		}
+	}
+
 	template<int sortColumn>
 	void internal_quickSort(int* order)
 	{
@@ -219,6 +305,8 @@ struct Table<First>
 	void showEditor(char* label, TableElement<First> elementToAdd) { showTableEditor<First>(label, this, elementToAdd); }
 #endif
 };
+
+
 
 template<typename First, typename... Rest>
 struct TableElement : public TableElement<Rest...>
@@ -286,10 +374,10 @@ struct GetImpl<0, First, Rest...>
 template<typename First, typename... Rest>
 struct GetSizeImpl
 {
-	static int value()
-	{
-		return GetSizeImpl<Rest...>::value() + 1;
-	}
+static int value()
+{
+	return GetSizeImpl<Rest...>::value() + 1;
+}
 
 };
 
@@ -313,31 +401,6 @@ auto get(const Table<First, Rest...>& t) -> decltype(GetImpl<index, First, Rest.
 {
 	return GetImpl<index, First, Rest...>().value(&t);
 }
-
-template<typename... Types>
-struct HandleTable : public Table<handle, Types...>
-{
-	template<typename Allocator>
-	HandleTable(Allocator& allocator, int capacity) : Table<handle, Types...>(allocator, capacity)
-	{
-	}
-
-	template<typename Allocator>
-	HandleTable(Allocator& allocator, const Types*... values, int size, int capacity) : Table<handle, Types...>(allocator, values..., size, capacity)
-	{
-
-	}
-
-	handle add(const Types&... values)
-	{
-		handle result = nextHandle;
-		Table<handle, Types...>::add(nextHandle, values...);
-		nextHandle.id++;
-		return nextHandle;
-	}
-
-	handle nextHandle = { 0 };
-};
 
 #ifdef USE_IMGUI
 #include "imgui/imgui.h"
@@ -370,7 +433,7 @@ bool showTableElementEditors(char* label, Table<First, Rest...>* t, int i, int c
 	sprintf_s(buffer, "%s%d", label, columnIndex);
 	showElementEditor<First>(buffer, &t->first[i]);
 	ImGui::NextColumn();
-	showTableElementEditors<Rest...>(label, (Table<Rest...>*)t, i, columnIndex+1);
+	showTableElementEditors<Rest...>(label, (Table<Rest...>*)t, i, columnIndex + 1);
 	return true;
 }
 
@@ -429,6 +492,7 @@ bool showElementEditor(char* label, TableElement<First, Rest...>* element)
 	char buffer[100];
 	sprintf_s(buffer, "%s%d", label, sizeof...(Rest));
 	showElementEditor<First>(buffer, &element->first);
+	ImGui::NextColumn();
 	showElementEditor<Rest...>(buffer, (TableElement<Rest...>*)element);
 	return true;
 }
@@ -439,141 +503,13 @@ bool showElementEditor(char* label, TableElement<First>* element)
 	char buffer[100];
 	sprintf_s(buffer, "%s%d", label, 0);
 	showElementEditor<First>(buffer, &element->first);
+	ImGui::NextColumn();
 	return true;
 }
 
-template<typename Allocator, typename T>
-struct JoinIterator
-{
-	JoinIterator(Allocator& in_allocator, const JoinIterator& model) : allocator(in_allocator), sizeA(model.sizeA), sizeB(model.sizeB), cursorA(model.cursoA), cursorB(model.cursorB), constBSequenceSize(model.constBSequenceSize)
-	{
-		A = allocator.allocate<T>(sizeA);
-		AIndexes = allocator.allocate<int>(sizeA);
-		B = allocator.allocate<T>(sizeB);
-		BIndexes = allocator.allocate<int>(sizeB);
-		for (int i = 0; i < sizeA; i++)
-		{
-			A[i] = model.A[i];
-			AIndexes[i] = model.AIndexes[i];
-		}
-
-		for (int j = 0; j < sizeB; j++)
-		{
-			B[i] = model.B[i];
-			BIndexes[i] = model.BIndexes[i];
-		}
-		array::quickSort(A, AIndexes, sizeA);
-		array::quickSort(B, BIndexes, sizeB);
-
-		while (!isFinished() && A[cursorA] != B[cursorB])
-		{
-			if (A[cursorA] < B[cursorB])
-				cursorA++;
-			else
-				cursorB++;
-		}
-	}
-
-	JoinIterator(Allocator& in_allocator, T* in_A, int in_sizeA, T* in_B, int in_sizeB) : allocator(in_allocator), sizeA(in_sizeA), sizeB(in_sizeB)
-	{
-		A = allocator.allocate<T>(sizeA);
-		AIndexes = allocator.allocate<int>(sizeA);
-		B = allocator.allocate<T>(sizeB);
-		BIndexes = allocator.allocate<int>(sizeB);
-		for (int i = 0; i < sizeA; i++)
-		{
-			A[i] = in_A[i];
-			AIndexes[i] = i;
-		}
-		for (int i = 0; i < sizeB; i++)
-		{
-			B[i] = in_B[i];
-			BIndexes[i] = i;
-		}
-
-		array::quickSort(A, AIndexes, sizeA);
-		array::quickSort(B, BIndexes, sizeB);
-
-		while (!isFinished() && A[cursorA] != B[cursorB])
-		{
-			if (A[cursorA] < B[cursorB])
-				cursorA++;
-			else
-				cursorB++;
-		}
-	}
-
-	ivec2 getIndexes() const
-	{
-		return ivec2(AIndexes[cursorA], BIndexes[cursorB]);
-	}
-
-	~JoinIterator()
-	{
-		allocator.free(A);
-		allocator.free(B);
-		allocator.free(AIndexes);
-		allocator.free(BIndexes);
-	}
-
-	JoinIterator& operator++(int i)
-	{
-		if (isFinished())
-			return *this;
-		if (cursorB + 1 < sizeB && B[cursorB + 1] == B[cursorB])
-		{
-			cursorB++;
-			constBSequenceSize++;
-			return *this;
-		}
-		if (cursorA + 1 < sizeA && A[cursorA + 1] == A[cursorA])
-		{
-			cursorA++;
-			cursorB -= constBSequenceSize;
-			constBSequenceSize = 0;
-			return *this;
-		}
-		if (A[cursorA] == B[cursorB])
-		{
-			cursorA++;
-			cursorB++;
-		}
-		while (!isFinished() && A[cursorA] != B[cursorB])
-		{
-			if (A[cursorA] < B[cursorB])
-				cursorA++;
-			else
-				cursorB++;
-		}
-
-		return *this;
-	}
-
-	bool isFinished()
-	{
-		return cursorA >= sizeA || cursorB >= sizeB;
-	}
-
-	T* A;
-	T* B;
-	int cursorA = 0, cursorB = 0;
-	int sizeA, sizeB;
-	int constBSequenceSize = 0;
-	
-	int* AIndexes;
-	int* BIndexes;
-
-	Allocator& allocator;
-};
-
-
 #define TABLE_TYPE(Table, Column) decltype(Table::Get<Column>::value())
 
-template<typename ATable, int AJoinColumn, typename BTable, int BJoinColumn>
-JoinIterator<memory::FreeListAllocator, TABLE_TYPE(ATable, AJoinColumn)> join(ATable A, BTable B)
-{
-	using JoinType = JoinIterator<memory::FreeListAllocator, TABLE_TYPE(ATable, AJoinColumn)>;
-	return JoinType(memory::allocators::freeList, A.get<AJoinColumn>(), A.count, B.get<BJoinColumn>(), B.count);
-}
 
 #endif
+
+#include "handle_table.h"

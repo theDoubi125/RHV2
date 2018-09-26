@@ -37,10 +37,23 @@ namespace action
 		float duration;
 	};
 
+	using WalkTableType = Table<handle, handle, action::Direction, float, float>;
 	// Action tables are sorted by duration
-	struct WalkTable : Table<handle, handle, action::Direction, float, float>
+	struct WalkTable : WalkTableType
 	{
-		TABLE_CONSTRUCTOR(WalkTable, handle, handle, action::Direction, float, float);
+		TABLE_CONSTRUCTOR(WalkTable, WalkTableType);
+
+		void assignBindings(MovementTable& movement, ForcesTable& forces)
+		{
+			entityBinding = &movement.addBinding();
+			forcesBinding = &forces.addBinding();
+		}
+
+		void updateBindings()
+		{
+			entityBinding->update<WalkTable, 0>(*this);
+			forcesBinding->update<WalkTable, 1>(*this);
+		}
 
 		handle* characters = get<0>();
 		handle* forces = get<1>();
@@ -48,10 +61,12 @@ namespace action
 		float* velocity = get<3>();
 		float* durations = get<4>();
 
+		TableBinding<100>* entityBinding;
+		TableBinding<100>* forcesBinding;
+
 		struct Element
 		{
 			handle character;
-			handle forceId;
 			action::Direction direction;
 			float velocity;
 			float duration;
@@ -60,9 +75,10 @@ namespace action
 		TABLE_DEBUG_COLUMNS("characters", "forces", "directions", "velocities", "durations")
 	};
 
-	struct IdleTable : Table<float, handle>
+	using IdleTableType = Table<float, handle>;
+	struct IdleTable : IdleTableType
 	{
-		TABLE_CONSTRUCTOR(IdleTable, float, handle);
+		TABLE_CONSTRUCTOR(IdleTable, IdleTableType);
 
 		float* durations = get<0>();
 		handle* characters = get<1>();
@@ -73,6 +89,7 @@ namespace action
 #endif
 	};
 
+	void addWalk(WalkTable& walkTable, ForcesTable& forcesTable, const WalkTable::Element& in_data, handle& out_forceId);
 	void updateWalk(WalkTable& walkTable, ForcesTable& forcesTable, float deltaTime);
 	void updateIdle(IdleTable& idleTable, float deltaTime);
 }

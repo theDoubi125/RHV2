@@ -177,6 +177,7 @@
   <ItemGroup>
     <ClInclude Include="src\common\entity\action\basic_actions.h" />
     <ClInclude Include="src\common\entity\movement.h" />
+    <ClInclude Include="src\common\util\array\handle_table.h" />
     <ClInclude Include="src\common\util\array\join.h" />
     <ClInclude Include="src\common\util\array\sorted.h" />
     <ClInclude Include="src\common\util\array\table.h" />

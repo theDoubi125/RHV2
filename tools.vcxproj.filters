@@ -67,6 +67,9 @@
     <ClInclude Include="src\tools\editor\editor_action.h">
       <Filter>src\tools\editor</Filter>
     </ClInclude>
+    <ClInclude Include="src\common\util\array\handle_table.h">
+      <Filter>src\common\util\array</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\tools\imgui\imgui.cpp">

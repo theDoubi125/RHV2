@@ -23,6 +23,31 @@ namespace editor
 	bool pathfindSelected = false;
 	bool collisionSelected = true;
 
+	struct TestTable : public HandleTable<int>
+	{
+		TABLE_CONSTRUCTOR(TestTable, HandleTable<int>)
+		TABLE_DEBUG_COLUMNS("data", "bla")
+	};
+
+	void drawIteratorEditor()
+	{
+		
+		static TestTable data(::memory::MallocAllocator(), 100);
+		static TestTable::ElementType dataToAdd;
+		static TestTable toRemove(::memory::MallocAllocator(), 100);
+		static TestTable::ElementType dataToRemove;
+		if (ImGui::Begin("Iterators"))
+		{
+			data.showEditor("Test Data", &dataToAdd);
+			toRemove.showEditor("To Remove", &dataToRemove);
+			if (ImGui::Button("Remove"))
+			{
+				data.removeAll(toRemove.first, toRemove.count);
+			}
+			ImGui::End();
+		}
+	}
+
 	void drawEditor(float deltaTime)
 	{
 		memory::drawStackAllocatorEditor();
@@ -38,6 +63,19 @@ namespace editor
 		static WorldDisplayConfig displayConfig;
 
 		static float stepDeltaTime = 1;
+
+		static TableBinding<100>* walkBinding;
+		static bool initialized = false;
+
+		if (!initialized)
+		{
+			forcesTable.assignBindings(movementManager);
+			walkTable.assignBindings(movementManager, forcesTable);
+			walkBinding = &movementManager.addBinding();
+			initialized = true;
+		}
+
+		drawIteratorEditor();
 		
 		if (ImGui::Begin("Tables"))
 		{
@@ -55,6 +93,12 @@ namespace editor
 			}
 			if (ImGui::CollapsingHeader("Transforms"))
 			{
+				static action::WalkTable::Element newAction;
+				if (ImGui::Button("Add Walk"))
+				{
+					handle forceId;
+					action::addWalk(walkTable, forcesTable, newAction, forceId);
+				}
 				if (ImGui::Button("Update walk"))
 				{
 					action::updateWalk(walkTable, forcesTable, stepDeltaTime);
@@ -68,6 +112,8 @@ namespace editor
 					updateMovement(movementManager, stepDeltaTime);
 				}
 			}
+			forcesTable.updateBindings();
+			walkTable.updateBindings();
 			ImGui::End();
 		}
 		drawWorldPreview(movementManager, displayConfig);

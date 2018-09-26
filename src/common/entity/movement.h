@@ -6,38 +6,50 @@
 #include "util/array/sorted.h"
 #include "util/array/table.h"
 
-#define TABLE_CONSTRUCTOR(ClassName, ...) template<typename Allocator> ClassName(Allocator& allocator, int capacity) : Table<__VA_ARGS__>(allocator, capacity) {}
-#define HANDLE_TABLE_CONSTRUCTOR(ClassName, ...) template<typename Allocator> ClassName(Allocator& allocator, int capacity) : HandleTable<__VA_ARGS__>(allocator, capacity) {}
 
-#ifdef USE_IMGUI
-#define TABLE_DEBUG_COLUMNS(...) char* columns[100] = { __VA_ARGS__ }; virtual char** getColumnNames() { return columns; }
-#else
-#define TABLE_DEBUG_COLUMNS(...)
-#endif
 
 #ifdef USE_IMGUI
 #include "imgui/imgui.h"
 #endif
 
-struct ForcesTable : HandleTable<vec2>
+struct RemovedTable
 {
-	HANDLE_TABLE_CONSTRUCTOR(ForcesTable, vec2);
+	handle* toRemove;
+
+};
+
+struct MovementTable;
+
+using ForcesTableType = HandleTable<vec2>;
+struct ForcesTable : ForcesTableType
+{
+	TABLE_CONSTRUCTOR(ForcesTable, ForcesTableType);
 	TABLE_DEBUG_COLUMNS("characters", "forces")
+
+	void assignBindings(MovementTable& movementTable);
+	void updateBindings();
 
 	handle* characters = get<0>();
 	vec2* forces = get<1>();
+	TableBinding<100>* entityBinding;
 };
 
-struct MovementTable : HandleTable<vec2, vec2, float>
+using MovementTableType = HandleTable<vec2, vec2, float>;
+struct MovementTable : MovementTableType
 {
-	HANDLE_TABLE_CONSTRUCTOR(MovementTable, vec2, vec2, float);
+	TABLE_CONSTRUCTOR(MovementTable, MovementTableType);
 	TABLE_DEBUG_COLUMNS("characters", "positions", "velocities", "masses")
 
 	handle* characters = get<0>();
 	vec2* positions = get<1>();
 	vec2* velocities = get<2>();
 	float* masses = get<3>();
+
+	handle* removed;
+	int removedCount = 0;
+
 };
 
 void updateMovement(MovementTable& movement, float deltaTime);
+void removeMovements(MovementTable& movement, handle* handle, int count);
 void applyForces(MovementTable& movementTable, ForcesTable& forcesTable, float deltaTime);

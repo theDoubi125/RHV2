@@ -54,3 +54,4 @@ bool showElementEditor<action::Direction>(char* label, action::Direction* dir)
 	}
 	return true;
 }
+

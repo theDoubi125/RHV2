@@ -1,2 +1,10 @@
-﻿  tools.vcxproj -> C:\Users\jrvel\Documents\cpp\Debug\tools.exe
-  tools.vcxproj -> C:\Users\jrvel\Documents\cpp\Debug\tools.pdb (Partial PDB)
+﻿  basic_actions.cpp
+  Generating Code...
+  Compiling...
+  editor_main.cpp
+  Generating Code...
+  Skipping... (no relevant changes detected)
+  editor_action.cpp
+  table.cpp
+  tools.vcxproj -> G:\Documents\Julien\Projets\C++\RHV2\Debug\tools.exe
+  tools.vcxproj -> G:\Documents\Julien\Projets\C++\RHV2\Debug\tools.pdb (Partial PDB)
